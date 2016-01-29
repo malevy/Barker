@@ -51,7 +51,11 @@ namespace Barker.Grains
             await base.OnActivateAsync();
         }
 
-        public Task Publish(string text) => _publicStream.OnNextAsync(new Message(text, this.GetPrimaryKey()));
+        public Task Publish(string text)
+        {
+            GrainFactory.GetGrain<IHashtagPublisher>(this.RuntimeIdentity).ProcessMessage(text);
+            return _publicStream.OnNextAsync(new Message(text, this.GetPrimaryKey()));
+        }
 
         public Task<Guid> AccountID() => Task.FromResult(this.GetPrimaryKey());
 
@@ -74,8 +78,6 @@ namespace Barker.Grains
         {
             if (null == message) return TaskDone.Done;
             if (message.AccountId == this.GetPrimaryKey()) return TaskDone.Done;
-
-            GrainFactory.GetGrain<IHashtagPublisher>(this.RuntimeIdentity).ProcessMessage(message.Text);
 
             if (_receivedMessages.Count >= MaxMessages) _receivedMessages.Dequeue();
             _receivedMessages.Enqueue(message);

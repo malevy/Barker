@@ -5,7 +5,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Barker.Interfaces;
 using Orleans;
+using Orleans.Runtime;
 using Orleans.Streams;
+using Polly;
 
 namespace Barker.Client
 {
@@ -53,11 +55,15 @@ namespace Barker.Client
                 "Unequaled", "care", "trashy", "serve", "bone", "fat"
             };
 
+            var retryPolicy = Policy
+                .Handle<AggregateException>(e => e.InnerException is OrleansException)
+                .WaitAndRetry(4, attempt => TimeSpan.FromSeconds(Math.Pow(2, attempt)));
+
             while (true)
             {
                 var message = $"{LoremNET.Lorem.Words(2, 10)} #{LoremNET.Lorem.Random(hashtags)}";
                 Console.WriteLine($">> {message}");
-                account.Publish(message).Wait();
+                retryPolicy.Execute(() => account.Publish(message).Wait());
                 Thread.Sleep(TimeSpan.FromSeconds(2));
             }
 
