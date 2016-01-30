@@ -1,0 +1,1 @@
+".\Barker.Monitor\bin\Debug\Barker.Monitor.exe"

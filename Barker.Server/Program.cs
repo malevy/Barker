@@ -1,5 +1,7 @@
 ﻿using System;
+using System.IO;
 using System.Net;
+using System.Reflection;
 using Orleans.Runtime.Host;
 
 namespace Barker.Server
@@ -36,9 +38,10 @@ namespace Barker.Server
 
         private static void InitSilo(string[] args)
         {
+            var configFile = Path.Combine(Path.GetDirectoryName(Assembly.GetCallingAssembly().Location) , "OrleansConfiguration.xml"); 
             _host = new SiloHost(Dns.GetHostName())
             {
-                ConfigFileName = "OrleansConfiguration.xml"
+                ConfigFileName = configFile
             };
             _host.LoadOrleansConfig();
             _host.InitializeOrleansSilo();

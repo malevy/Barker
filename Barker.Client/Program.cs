@@ -1,5 +1,7 @@
 ﻿using System;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.Remoting.Messaging;
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,9 +21,9 @@ namespace Barker.Client
         {
             Console.WriteLine($"Starting client {ClientName}");
 
-            GrainClient.Initialize("ClientConfiguration.xml");
+            var configFile = Path.Combine(Path.GetDirectoryName(Assembly.GetCallingAssembly().Location), "ClientConfiguration.xml");
+            GrainClient.Initialize(configFile);
 
-            var account = GrainClient.GrainFactory.GetGrain<IAccount>(ClientName);
             var streamProvider = GrainClient.GetStreamProvider("DefaultProvider");
 
             var messageStream = streamProvider.GetStream<MessageBatch>(ClientName, "AccountSteams");
@@ -30,7 +32,7 @@ namespace Barker.Client
             var subscriptionHandle = messageStream.SubscribeAsync(watcher).Result;
 
             var cts = new CancellationTokenSource();
-            var publisherTask = Task.Factory.StartNew(PublishMessages, account, cts.Token);
+            var publisherTask = Task.Factory.StartNew(PublishMessages, cts.Token);
 
             Console.WriteLine("client started");
             Console.WriteLine("Press ENTER to stop this publisher.");
@@ -45,9 +47,9 @@ namespace Barker.Client
             Console.WriteLine("Publisher client");
         }
 
-        private static void PublishMessages(object o)
+        private static void PublishMessages()
         {
-            var account = o as IAccount;
+            var account = GrainClient.GrainFactory.GetGrain<IAccount>(ClientName);
 
             string[] hashtags = new[]
             {
@@ -56,7 +58,7 @@ namespace Barker.Client
             };
 
             var retryPolicy = Policy
-                .Handle<AggregateException>(e => e.InnerException is OrleansException)
+                .Handle<AggregateException>()
                 .WaitAndRetry(4, attempt => TimeSpan.FromSeconds(Math.Pow(2, attempt)));
 
             while (true)

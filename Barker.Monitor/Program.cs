@@ -1,5 +1,7 @@
 ﻿using System;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Barker.Interfaces;
@@ -15,7 +17,8 @@ namespace Barker.Monitor
         {
             Console.WriteLine($"Starting monitor {ClientName}");
 
-            GrainClient.Initialize("ClientConfiguration.xml");
+            var configFile = Path.Combine(Path.GetDirectoryName(Assembly.GetCallingAssembly().Location), "ClientConfiguration.xml");
+            GrainClient.Initialize(configFile);
 
             var cts = new CancellationTokenSource();
             var workTask = Task.Factory.StartNew(DoWork, cts.Token);
